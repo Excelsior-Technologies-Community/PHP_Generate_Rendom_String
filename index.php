@@ -1,179 +1,244 @@
 <?php
 
-// ------------------------------------------
-// Functions
-// ------------------------------------------
-function generateRandomString1($length = 10)
+// 1. Secure Random Generator Function (Updated with random_int)
+function generateAdvancedString($length = 10, $type = 'alphanumeric', $includeSpecial = false)
 {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $randomString = '';
+    if ($type === 'secure') {
+        return bin2hex(random_bytes($length / 2));
+    }
+
+    $chars = '';
+    if ($type === 'letters') {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    } elseif ($type === 'numbers') {
+        $chars = '0123456789';
+    } else {
+        $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    }
+
+    if ($includeSpecial) {
+        $chars .= '!@#$%^&*()-_=+[]{}<>?';
+    }
+
+    $str = '';
+    $max = strlen($chars) - 1;
     for ($i = 0; $i < $length; $i++) {
-        $randomString .= $characters[rand(0, strlen($characters) - 1)];
+        $str .= $chars[random_int(0, $max)];
     }
-    return $randomString;
+    return $str;
 }
 
-function generateRandomString2($length = 10)
-{
-    return bin2hex(random_bytes($length));
-}
+// 2. Logic to handle POST requests (Regular and AJAX)
+$customStrings = [];
+$lengthValue = $_POST['length'] ?? 10;
+$typeValue   = $_POST['type'] ?? 'alphanumeric';
+$countValue  = $_POST['count'] ?? 1;
+$specialChecked = isset($_POST['special']) ? 'checked' : '';
 
-function generateRandomLetters($length = 8)
-{
-    $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $random = '';
-    for ($i = 0; $i < $length; $i++) {
-        $random .= $characters[random_int(0, strlen($characters) - 1)];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $len = (int)$lengthValue;
+    $cnt = (int)$countValue;
+    $special = isset($_POST['special']);
+
+    for ($i = 0; $i < $cnt; $i++) {
+        $customStrings[] = generateAdvancedString($len, $typeValue, $special);
     }
-    return $random;
-}
 
-function generateRandomNumbers($length = 6)
-{
-    $numbers = '0123456789';
-    $random = '';
-    for ($i = 0; $i < $length; $i++) {
-        $random .= $numbers[random_int(0, strlen($numbers) - 1)];
-    }
-    return $random;
-}
-
-// ------------------------------------------
-// Custom Generator Logic
-// ------------------------------------------
-$customString = '';
-
-$lengthValue = $_POST['length'] ?? '';
-$typeValue   = $_POST['type'] ?? '';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $length = $_POST['length'];
-    $type   = $_POST['type'];
-
-    if ($type == 'alphanumeric') {
-        $customString = generateRandomString1($length);
-    } elseif ($type == 'letters') {
-        $customString = generateRandomLetters($length);
-    } elseif ($type == 'numbers') {
-        $customString = generateRandomNumbers($length);
-    } elseif ($type == 'secure') {
-        $customString = generateRandomString2($length);
+    // If it's an AJAX request (Regenerate button)
+    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+        echo implode("\n", $customStrings);
+        exit;
     }
 }
-
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="gu">
 <head>
-    <title>Generate Random String in PHP</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP Advanced Random Generator</title>
     <style>
         body {
             margin: 0;
-            padding: 40px 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
         }
 
         .card {
             background: #fff;
-            padding: 30px 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             text-align: center;
-            max-width: 500px;
-            width: 90%;
+            width: 100%;
+            max-width: 550px;
+            box-sizing: border-box;
         }
 
-        h2 { margin-bottom: 20px; color: #333; }
-        p { font-size: 16px; margin: 10px 0; }
-
-        strong {
-            color: #667eea;
-            font-family: monospace;
+        h2 { color: #333; margin-top: 0; }
+        
+        .form-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
         }
 
         input, select {
-            padding: 8px;
-            margin: 5px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            cursor: pointer;
         }
 
         button {
-            padding: 8px 12px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             color: white;
             cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
         }
+
+        .btn-generate { background: #667eea; width: 100%; font-size: 16px; }
+        .btn-generate:hover { background: #5a67d8; }
+        
+        .result-container {
+            margin-top: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #eee;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            display: block;
+            word-break: break-all; /* આ પ્રોપર્ટી લેઆઉટ બચાવશે */
+            font-family: 'Courier New', monospace;
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            text-align: left;
+            font-size: 15px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-copy { background: #28a745; flex: 1; }
+        .btn-regen { background: #ff9800; flex: 1; }
+        
+        #msg { margin-top: 10px; font-size: 14px; font-weight: bold; }
+
+        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
     </style>
 </head>
 <body>
+
 <div class="card">
-    <h2>PHP Random String Generator</h2>
+    <h2>PHP Random Generator</h2>
 
-    <!-- Default Examples -->
-    <p>1. Simple: <strong><?php echo generateRandomString1(10); ?></strong></p>
-    <p>2. Secure Hex: <strong><?php echo generateRandomString2(20); ?></strong></p>
-    <p>3. Letters: <strong><?php echo generateRandomLetters(8); ?></strong></p>
-    <p>4. Numbers: <strong><?php echo generateRandomNumbers(6); ?></strong></p>
+    <form method="POST" id="genForm">
+        <div class="form-group">
+            <input type="number" name="length" placeholder="Length" value="<?php echo $lengthValue; ?>" min="1" style="width: 80px;" required>
+            <input type="number" name="count" placeholder="Bulk" value="<?php echo $countValue; ?>" min="1" style="width: 80px;" title="How many strings?">
+            
+            <select name="type">
+                <option value="alphanumeric" <?php echo $typeValue=='alphanumeric'?'selected':''; ?>>Mixed (A-z, 0-9)</option>
+                <option value="letters" <?php echo $typeValue=='letters'?'selected':''; ?>>Letters Only</option>
+                <option value="numbers" <?php echo $typeValue=='numbers'?'selected':''; ?>>Numbers Only</option>
+                <option value="secure" <?php echo $typeValue=='secure'?'selected':''; ?>>Secure Hex</option>
+            </select>
+        </div>
 
-    <hr>
+        <label class="checkbox-container">
+            <input type="checkbox" name="special" <?php echo $specialChecked; ?>> Include Special Characters (!@#$...)
+        </label>
 
-    <h3>Custom Generator</h3>
-
-    <!-- FORM -->
-    <form method="POST">
-        <input type="number" name="length" placeholder="Length"
-               value="<?php echo $lengthValue; ?>" required>
-
-        <select name="type">
-            <option value="alphanumeric" <?php if($typeValue=='alphanumeric') echo 'selected'; ?>>Alphanumeric</option>
-            <option value="letters" <?php if($typeValue=='letters') echo 'selected'; ?>>Letters</option>
-            <option value="numbers" <?php if($typeValue=='numbers') echo 'selected'; ?>>Numbers</option>
-            <option value="secure" <?php if($typeValue=='secure') echo 'selected'; ?>>Secure</option>
-        </select>
-
-        <button type="submit" style="background:#667eea;">Generate</button>
+        <button type="submit" class="btn-generate">Generate Strings</button>
     </form>
 
-    <!-- RESULT -->
-    <?php if($customString): ?>
-        <p>
-            Result:
-            <strong id="result"><?php echo $customString; ?></strong>
-        </p>
+    <?php if (!empty($customStrings)): ?>
+        <div class="result-container" id="resultBox">
+            <?php foreach ($customStrings as $str): ?>
+                <div class="result-item"><?php echo htmlspecialchars($str); ?></div>
+            <?php endforeach; ?>
+        </div>
 
-        <button onclick="copyText()" style="background:#28a745;">Copy</button>
-        <button onclick="regenerate()" style="background:#ff9800;">Regenerate</button>
-
-        <p id="msg" style="color:green;"></p>
+        <div class="action-btns">
+            <button onclick="copyAll()" class="btn-copy">Copy All</button>
+            <button onclick="regenerate()" class="btn-regen">Regenerate</button>
+        </div>
+        <div id="msg"></div>
     <?php endif; ?>
 </div>
 
 <script>
-function copyText() {
-    let text = document.getElementById("result").innerText;
-    navigator.clipboard.writeText(text);
-    document.getElementById("msg").innerText = "Copied!";
+function copyAll() {
+    const items = document.querySelectorAll('.result-item');
+    const textToCopy = Array.from(items).map(div => div.innerText).join('\n');
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const msg = document.getElementById("msg");
+        msg.innerText = "Copied to Clipboard!";
+        msg.style.color = "#28a745";
+        setTimeout(() => msg.innerText = "", 2000);
+    });
 }
 
 function regenerate() {
-    let length = document.querySelector('input[name="length"]').value;
-    let type = document.querySelector('select[name="type"]').value;
-
-    fetch('generate.php', {
+    const form = document.getElementById('genForm');
+    const formData = new FormData(form);
+    
+    // AJAX call
+    fetch(window.location.href, {
         method: 'POST',
+        body: formData,
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `length=${length}&type=${type}`
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
     .then(res => res.text())
     .then(data => {
-        document.getElementById("result").innerText = data;
-        document.getElementById("msg").innerText = "New string generated!";
+        const resultBox = document.getElementById("resultBox");
+        resultBox.innerHTML = "";
+        
+        data.split('\n').forEach(str => {
+            if(str.trim()) {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.innerText = str;
+                resultBox.appendChild(div);
+            }
+        });
+
+        const msg = document.getElementById("msg");
+        msg.innerText = "New batch generated!";
+        msg.style.color = "#ff9800";
+        setTimeout(() => msg.innerText = "", 2000);
     });
 }
 </script>
